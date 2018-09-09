@@ -1,22 +1,44 @@
-//Library for Ticker
+//Library:
 #include <Ticker.h>
 #include <SX1278.h>
 
+//Child Parameter:
+#define Child_1
+// #define Child_2
+// #define Child_3
+// #define Child_4
+
 //Lora SX1278:
-#define LORA_MODE             10
+#define LORA_MODE             10            //mode: mode number to set the required BW, SF and CR of LoRa modem.
 #define LORA_CHANNEL          CH_6_BW_125
+uint8_t ControllerAddress = 5;              //Parent Address
+uint8_t MAXretries = 4;
+
+#ifdef Child_1
 #define LORA_ADDRESS          3
-uint8_t ControllerAddress = 5;
+#endif
+
+#ifdef Child_2
+#define LORA_ADDRESS          4
+#endif
+
+#ifdef Child_3
+#define LORA_ADDRESS          6
+#endif
+
+#ifdef Child_4
+#define LORA_ADDRESS          7
+#endif
 
 //Message var:
-char my_packet [50];
-char testData[50];
+char my_packet [50];  //Used to store Incoming message in char array from Parent Node
+char testData[50];    //Used to store message which will be sent to Parent Node
+String receivedMsg;   //to store the converted my_packet string from char array
 
 //Pin Def:
 int ButtonPIN = 2;
 int LED = 4;
 int GreenLED = 5;
-// int NewButton = 4;
 
 //Flag:
 boolean T_ISR_F = false;
@@ -28,36 +50,74 @@ boolean FunctionBlockingFlag = true;
 long debouncing_time = 3000;
 volatile unsigned long last_micros;
 
-void setup() {
-  Serial.begin(9600);
+// timer for sending data:
+long interval = 2000;
+unsigned long last_interval = 0;
+unsigned long current_millis;
 
+Ticker wait1sec;
+#define DEBUG
+
+void setup() {
+  //Serial communication begin:
+#ifdef DEBUG
+  Serial.begin(9600);
+#endif
   //Lora init:
   loraSetup();
-
   //Pin config:
-  pinMode(LED, OUTPUT);
-  pinMode(0, OUTPUT);
-  pinMode(GreenLED, OUTPUT);
-  digitalWrite(GreenLED, LOW);
-  // pinMode(GreenLED, mode);
-  digitalWrite(0, LOW);
-  pinMode(ButtonPIN, INPUT);
+  pinConfiguration();
   //Interrupt:
   attachInterrupt(digitalPinToInterrupt(ButtonPIN), Trigger_ISR, FALLING);
+#ifdef DEBUG
+  Serial.print("Lora Address :");
+  Serial.println(LORA_ADDRESS);
+#endif
+  //turnOff Led:
+  ledOff();
 }
 
 void loop() {
-  recieveData();
-  delay(1000);
-  // Serial.println(digitalRead(ButtonPIN));
 
-  if (T_ISR_F && !FunctionBlockingFlag) {
-    String("K").toCharArray(testData, 50);
-    sendData(testData);
-    delay(1000);
-    //FailSafe:
-    sendDataFailSafe();
+  recieveData();
+
+  if (!FunctionBlockingFlag) {
+    unsigned long current_millis = millis();
+    if ((unsigned long ) (current_millis - last_interval) >= interval) {
+      childTask();
+      last_interval = millis();
+    }
   }
+}
+
+void childTask() {
+#ifdef Child_1
+  if ( (receivedMsg.equals("GL1") || receivedMsg.equals("RL1")) /*&& T_ISR_F*/ && !FunctionBlockingFlag) {
+    String("KL1").toCharArray(testData, 50);
+    sendData(testData);
+  }
+#endif
+
+#ifdef Child_2
+  if ( (receivedMsg.equals("GL2") || receivedMsg.equals("RL2")) /*&& T_ISR_F*/ && !FunctionBlockingFlag) {
+    String("KL2").toCharArray(testData, 50);
+    sendData(testData);
+  }
+#endif
+
+#ifdef Child_3
+  if ( (receivedMsg.equals("GL3") || receivedMsg.equals("RL3")) && T_ISR_F && !FunctionBlockingFlag) {
+    String("KL3").toCharArray(testData, 50);
+    sendData(testData);
+  }
+#endif
+
+#ifdef Child_4
+  if ( (receivedMsg.equals("GL4") || receivedMsg.equals("RL4")) && T_ISR_F && !FunctionBlockingFlag) {
+    String("KL4").toCharArray(testData, 50);
+    sendData(testData);
+  }
+#endif
 }
 
 void Trigger_ISR() {
@@ -65,66 +125,63 @@ void Trigger_ISR() {
     T_ISR_F = true;
     last_micros = micros();
   } else {
+#ifdef DEBUG
     Serial.println("Bounce");
+#endif
   }
 }
+
+/*
+  Function: Configures the module to transmit information and receive an ACK.
+  Returns: Integer that determines if there has been any error [T_packet_state]
+   state = 9  --> The ACK lost (no data available)
+   state = 8  --> The ACK lost
+   state = 7  --> The ACK destination incorrectly received
+   state = 6  --> The ACK source incorrectly received
+   state = 5  --> The ACK number incorrectly received
+   state = 4  --> The ACK length incorrectly received
+   state = 3  --> N-ACK received
+   state = 2  --> The command has not been executed
+   state = 1  --> There has been an error while executing the command
+   state = 0  --> The command has been executed with no errors
+*/
 
 int sendData(char message[]) {
-  T_packet_state = sx1278.sendPacketTimeoutACK(ControllerAddress, message);
-
-  if (T_packet_state == 0)
-  {
+  T_packet_state = sx1278.sendPacketTimeoutACKRetries(ControllerAddress, message);
+  wait1sec.attach(2, waitFunction);
+  if (T_packet_state == 0) {
+#ifdef DEBUG
     //Serial.println(F("State = 0 --> Command Executed w no errors!"));
     Serial.println(F("Confirmation Packet sent....."));
+#endif
     return FunctionBlockingFlag = true, T_ISR_F = false;;
   }
-
-  else if (T_packet_state != 0) {
-
-    if(T_packet_state == 9) {
-      Serial.print(F("Packet not sent....."));
-      Serial.println(T_packet_state);
-      return T_packet_state;
-    } 
-    else if ( T_packet_state == 5 || T_packet_state == 4) {
-      Serial.println("Controller is trying to send data!");
-      Serial.println("Shifting to Receving mode");
-      return FunctionBlockingFlag = true;
-    }
-    
-  }
-}
-
-int sendDataFailSafe() {
-  if ( T_packet_state == 9) {
-    sendData(testData);
-    delay(1000);
-    if ( T_packet_state == 9) {
-      loraSetupFT();
-      delay(10);
-      sendData(testData);
-      delay(1000);
-    }
-  } else if (T_packet_state != 9) {
-      recieveData();
-      delay(500);
-  }
+  // else if (state == 5 || state == 4) {
+  //   // #ifdef DEBUG
+  //   // Serial.println("Controller is trying to send data!");
+  //   // Serial.println("Shifting to Receving mode");
+  //   // #endif
+  //   return FunctionBlockingFlag = true;
+  // }
 }
 
 int recieveData() {
   R_packet_state = sx1278.receivePacketTimeoutACK();
-
+  wait1sec.attach(1, waitFunction);
   if (R_packet_state == 0) {
-    delay(10);
+#ifdef DEBUG
     Serial.println(F("Package received!"));
+#endif
 
     for (unsigned int i = 0; i < sx1278.packet_received.length; i++) {
       my_packet[i] = (char)sx1278.packet_received.data[i];
       yield();
     }
+#ifdef DEBUG
     Serial.print(F("Message:  "));
     Serial.println(my_packet);
-
+#endif
+    receivedMsg = String(my_packet); //Converts CharArray to String
     Process();
 
     return FunctionBlockingFlag = false;
@@ -133,111 +190,174 @@ int recieveData() {
 
 
 void Process() {
-  if (my_packet[0] == 'G') {
-    digitalWrite(LED, HIGH);
-    digitalWrite(GreenLED, LOW);
-  } else if (my_packet[0] == 'R') {
-    digitalWrite(LED, LOW);
-    digitalWrite(GreenLED, HIGH);
-  } else if (my_packet[0] == 'S') {
+  //For Child 1
+#ifdef Child_1
+  if (receivedMsg.equals("GL1")) {
+    digitalWrite(LED, HIGH); //To turn off RED LED
+    digitalWrite(GreenLED, LOW); //To turn on Green LED
+  }
+  if (receivedMsg.equals("RL1")) {
+    digitalWrite(LED, LOW); //Turns on RED LED
+    digitalWrite(GreenLED, HIGH); //Turns off Green LED
+  }
+#endif
+
+  //For Child 2
+#ifdef Child_2
+  if (receivedMsg.equals("GL2")) {
+    digitalWrite(LED, HIGH); //To turn off RED LED
+    digitalWrite(GreenLED, LOW); //To turn on Green LED
+  }
+  if (receivedMsg.equals("RL2")) {
+    digitalWrite(LED, LOW); //Turns on RED LED
+    digitalWrite(GreenLED, HIGH); //Turns off Green LED
+  }
+#endif
+
+  //For Child 3
+#ifdef Child_3
+  if (receivedMsg.equals("GL3")) {
+    digitalWrite(LED, HIGH); //To turn off RED LED
+    digitalWrite(GreenLED, LOW); //To turn on Green LED
+  }
+  if (receivedMsg.equals("RL3")) {
+    digitalWrite(LED, LOW); //Turns on RED LED
+    digitalWrite(GreenLED, HIGH); //Turns off Green LED
+  }
+#endif
+
+  //For Child 4
+#ifdef Child_4
+  if (receivedMsg.equals("GL4")) {
+    digitalWrite(LED, HIGH); //To turn off RED LED
+    digitalWrite(GreenLED, LOW); //To turn on Green LED
+  }
+  if (receivedMsg.equals("RL4")) {
+    digitalWrite(LED, LOW); //Turns on RED LED
+    digitalWrite(GreenLED, HIGH); //Turns off Green LED
+  }
+#endif
+
+  //This one should be broadcasted
+  if (receivedMsg.equals("S")) {
     ESP.restart();
   }
 }
 
 void loraSetup() {
+#ifdef DEBUG
   Serial.println("");
+#endif
   // Power ON the module:
   if (sx1278.ON() == 0) {
+#ifdef DEBUG
     Serial.println(F("Setting power ON: SUCCESS "));
+#endif
   } else {
+#ifdef DEBUG
     Serial.println(F("Setting power ON: ERROR "));
+#endif
   }
 
   // Set transmission mode and print the result:
   if (sx1278.setMode(LORA_MODE) == 0) {
+#ifdef DEBUG
     Serial.println(F("Setting Mode: SUCCESS "));
+#endif
   } else {
+#ifdef DEBUG
     Serial.println(F("Setting Mode: ERROR "));
+#endif
   }
 
   // Set header:
   if (sx1278.setHeaderON() == 0) {
+#ifdef DEBUG
     Serial.println(F("Setting Header ON: SUCCESS "));
+#endif
   } else {
+#ifdef DEBUG
     Serial.println(F("Setting Header ON: ERROR "));
+#endif
   }
 
   // Select frequency channel:
   if (sx1278.setChannel(LORA_CHANNEL) == 0) {
+#ifdef DEBUG
     Serial.println(F("Setting Channel: SUCCESS "));
+#endif
   } else {
+#ifdef DEBUG
     Serial.println(F("Setting Channel: ERROR "));
+#endif
   }
 
   // Set CRC:
   if (sx1278.setCRC_ON() == 0) {
+#ifdef DEBUG
     Serial.println(F("Setting CRC ON: SUCCESS "));
+#endif
   } else {
+#ifdef DEBUG
     Serial.println(F("Setting CRC ON: ERROR "));
+#endif
   }
 
   // Select output power (Max, High, Intermediate or Low)
   if (sx1278.setPower('M') == 0) {
+#ifdef DEBUG
     Serial.println(F("Setting Power: SUCCESS "));
+#endif
   } else {
+#ifdef DEBUG
     Serial.println(F("Setting Power: ERROR "));
+#endif
   }
 
   // Set the node address and print the result
   if (sx1278.setNodeAddress(LORA_ADDRESS) == 0) {
+#ifdef DEBUG
     Serial.println(F("Setting node address: SUCCESS "));
+#endif
   } else {
+#ifdef DEBUG
     Serial.println(F("Setting node address: ERROR "));
+#endif
+  }
+
+  if (sx1278.setRetries(MAXretries) == 0) {
+#ifdef DEBUG
+    Serial.println("Setting retries: SUCCESS");
+#endif
+  } else {
+#ifdef DEBUG
+    Serial.println("Setting retires: ERROR");
+#endif
   }
 
   // Print a success
+#ifdef DEBUG
   Serial.println(F("SX1278 configured finished"));
   Serial.println();
+#endif
 }
 
-void loraSetupFT () {
-  // Power ON the module:
-  if (sx1278.ON() == 0) {
-  } else {
-  }
+void pinConfiguration() {
+  pinMode(LED, OUTPUT);
+  pinMode(0, OUTPUT);
+  pinMode(GreenLED, OUTPUT);
+  digitalWrite(GreenLED, LOW);
+  // pinMode(GreenLED, mode);
+  digitalWrite(0, LOW);
+  pinMode(ButtonPIN, INPUT);
+}
 
-  // Set transmission mode and print the result:
-  if (sx1278.setMode(LORA_MODE) == 0) {
-  } else {
-  }
+void ledOff() {
+  digitalWrite(LED, LOW);
+  digitalWrite(GreenLED, LOW);
+}
 
-  // Set header:
-  if (sx1278.setHeaderON() == 0) {
-  } else {
-  }
-
-  // Select frequency channel:
-  if (sx1278.setChannel(LORA_CHANNEL) == 0) {
-  } else {
-  }
-
-  // Set CRC:
-  if (sx1278.setCRC_ON() == 0) {
-  } else {
-  }
-
-  // Select output power (Max, High, Intermediate or Low)
-  if (sx1278.setPower('M') == 0) {
-  } else {
-  }
-
-  // Set the node address and print the result
-  if (sx1278.setNodeAddress(LORA_ADDRESS) == 0) {
-  } else {
-  }
-
-  // Print a success
-  Serial.println(F("SX1278 RE-CONFIGURED FINISHED"));
-  Serial.println();
+void waitFunction() {
+  wait1sec.detach();
 }
 

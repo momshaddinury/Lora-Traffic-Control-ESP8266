@@ -5205,6 +5205,7 @@ uint8_t SX1278::sendPacketMAXTimeoutACKRetries(	uint8_t dest,
 uint8_t SX1278::sendPacketTimeoutACKRetries(uint8_t dest, char *payload)
 {
 	uint8_t state = 2;
+Serial.println("hello world");
 
 	#if (SX1278_debug_mode > 1)
 		Serial.println();
@@ -5215,7 +5216,19 @@ uint8_t SX1278::sendPacketTimeoutACKRetries(uint8_t dest, char *payload)
 	state = 1;
 	while( (state != 0) && (_retries <= _maxRetries) )
 	{
+		Serial.println(_retries);
 		state = sendPacketTimeoutACK(dest, payload);
+		//I want to use this state to get the hell out of this class/instance or whatever the fuck this is.
+		//I am thinking about using return state or just break.
+		//So far using state = 0 works fine but can't make it work the way I want using break or return state;
+		//If I use break or return state it just keeps looping not sure why.
+		/*
+		if(state == 5 || state == 4) {
+			Serial.println("Controller is trying to send data!");
+    		Serial.println("Shifting to Receving mode");
+    		state = 0;
+		}
+		*/
 		_retries++;
 	}
 	_retries = 0;
