@@ -57,7 +57,6 @@ Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 #define LORA_CHANNEL          CH_6_BW_125
 #define LORA_ADDRESS          5
 uint8_t NodeAddress;          //Child Address
-uint8_t MAXretries = 4;
 int address;
 
 char my_packet [50];
@@ -82,7 +81,7 @@ String Location_3 = "MURADPUR";
 String Location_4 = "PROBARTAK";
 boolean blockStateColor;
 // boolean blockStateColor2;
-Ticker Location1, Location2, Location3, Location4, statusRectToggler, wait1sec;
+Ticker Location1, Location2, Location3, Location4, statusRectToggler;
 
 boolean locationBlock_1 = true;
 boolean locationBlock_2 = true;
@@ -95,7 +94,6 @@ boolean button3State = true;
 boolean button4State = true;
 //Sync:
 boolean resetCondition = true;
-boolean resetStop;
 //Timer:
 long interval = 3000;
 volatile unsigned long DB_priv_time_1;
@@ -147,6 +145,7 @@ void loop() {
   digitalWrite(digitalButton_1, HIGH);
   digitalWrite(0, LOW);
 }
+
 void sync() {
   if (resetCondition == true) {
 
@@ -163,28 +162,21 @@ void sync() {
     sendData(address , testData);
 
     if ( T_packet_state == 0 ) {
-      resetStop = true;
+      resetCondition = false;
+      // ----------------------------------
+      tft.fillRect(rect1x, 117, recwidth, 20, GREEN);
+      tft.setCursor(22, 122);
+      tft.setTextColor(BLACK);
+      tft.setTextSize(1);
+      tft.print("Sync completed!");
+
+      statusRectToggler.attach(2, statusSecTiggerFunction);
+      // ----------------------------------
     }
   }
-  if (resetStop == true) {
-    resetCondition = false;
-    resetStop = false;
-
-    // ----------------------------------
-    tft.fillRect(rect1x, 117, recwidth, 20, GREEN);
-    tft.setCursor(22, 122);
-    tft.setTextColor(BLACK);
-    tft.setTextSize(1);
-    tft.print("Sync completed!");
-
-    statusRectToggler.attach(2, statusSecTiggerFunction);
-
-    // ----------------------------------
-  }
 }
-void waitFunction() {
-  wait1sec.detach();
-}
+
+
 void statusSecTiggerFunction() {
   tft.fillRect(rect1x, 117, recwidth, 40, YELLOW);
   statusRectToggler.detach();
@@ -446,9 +438,6 @@ void AnalogAction() {
         address = 7;
         sendData(address, testData);
 
-        //FailSafe:
-
-
         if (T_packet_state == 0) {
           blockStateColor = true;
           Location4.attach(0.8, Blink_Location_Rect_4);
@@ -495,21 +484,18 @@ void AnalogAction() {
    state = 0  --> The command has been executed with no errors
 */
 
-int sendData(uint8_t NodeAddress, char message[]) {
+void sendData(uint8_t NodeAddress, char message[]) {
 #ifdef DEBUG
   Serial.print("Node Address : ");
   Serial.println(address);
 #endif
-  // sx1278.setRetries(MAXretries);
   T_packet_state = sx1278.sendPacketTimeoutACKRetries(NodeAddress, message);
-  wait1sec.attach(1, waitFunction);
   if (T_packet_state == 0)
   {
 #ifdef DEBUG
     Serial.println(F("State = 0 --> Command Executed w no errors!"));
     Serial.println(F("Packet sent..."));
 #endif
-    return T_packet_state;
   }
   else {
 #ifdef DEBUG
@@ -517,13 +503,14 @@ int sendData(uint8_t NodeAddress, char message[]) {
     Serial.println(T_packet_state);
     Serial.println(F("Packet not sent...."));
 #endif
-    return T_packet_state;
   }
 }
+
+
+
 //Global receive data funtion
 void recieveData() {
   R_packet_state = sx1278.receivePacketTimeoutACK();
-  wait1sec.attach(1, waitFunction);
   if (R_packet_state == 0) {
 #ifdef DEBUG
     Serial.println(F("Package received!"));
@@ -537,11 +524,10 @@ void recieveData() {
     Serial.println(my_packet);
 #endif
     receivedMsg = String(my_packet);
-
     Setting_Block_State_Color();
-    // return R_packet_state;
   }
 }
+
 //This is for blinking the FIRST Location
 void Blink_Location_Rect_1() {
   //Green Block Blink:
@@ -969,16 +955,6 @@ void loraSetup() {
 #endif
   }
 
-  if (sx1278.setRetries(MAXretries) == 0) {
-#ifdef DEBUG
-    Serial.println("Setting retries: SUCCESS");
-#endif
-  } else {
-#ifdef DEBUG
-    Serial.println("Setting retires: ERROR");
-#endif
-  }
-
   // Print a success
 #ifdef DEBUG
   Serial.println(F("SX1278 configured finished"));
@@ -986,44 +962,6 @@ void loraSetup() {
 #endif
 }
 
-// void loraSetupFT () {
-//   // Power OFF the module:
-//   //sx1278.OFF();
-//   wait1sec.attach(1,waitFunction);
-//   // Power ON the module:
-//   if (sx1278.ON() == 0) {
-//   } else {
-//   }
-//   // Set transmission mode and print the result:
-//   if (sx1278.setMode(LORA_MODE) == 0) {
-//   } else {
-//   }
-//   // Set header:
-//   if (sx1278.setHeaderON() == 0) {
-//   } else {
-//   }
-//   // Select frequency channel:
-//   if (sx1278.setChannel(LORA_CHANNEL) == 0) {
-//   } else {
-//   }
-//   // Set CRC:
-//   if (sx1278.setCRC_ON() == 0) {
-//   } else {
-//   }
-//   // Select output power (Max, High, Intermediate or Low)
-//   if (sx1278.setPower('M') == 0) {
-//   } else {
-//   }
-//   // Set the node address and print the result
-//   if (sx1278.setNodeAddress(LORA_ADDRESS) == 0) {
-//   } else {
-//   }
-//   // Print a success
-//   #ifdef DEBUG
-//   Serial.println(F("SX1278 RE-CONFIGURED FINISHED"));
-//   Serial.println();
-//   #endif
-// }
 
 void displaySetup() {
 
@@ -1036,7 +974,6 @@ void displaySetup() {
   tft.setTextColor(BLACK);
   tft.setCursor(23, 10);
   tft.println("TRAFFIC CONTROL");
-  wait1sec.attach(1, waitFunction);
 
 
   // Black Rect

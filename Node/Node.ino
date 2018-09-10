@@ -4,15 +4,14 @@
 
 //Child Parameter:
 #define Child_1
-// #define Child_2
-// #define Child_3
-// #define Child_4
+//#define Child_2
+//#define Child_3
+//#define Child_4
 
 //Lora SX1278:
 #define LORA_MODE             10            //mode: mode number to set the required BW, SF and CR of LoRa modem.
 #define LORA_CHANNEL          CH_6_BW_125
 uint8_t ControllerAddress = 5;              //Parent Address
-uint8_t MAXretries = 4;
 
 #ifdef Child_1
 #define LORA_ADDRESS          3
@@ -146,28 +145,21 @@ void Trigger_ISR() {
    state = 0  --> The command has been executed with no errors
 */
 
-int sendData(char message[]) {
+void sendData(char message[]) {
+  delay(1000);
   T_packet_state = sx1278.sendPacketTimeoutACKRetries(ControllerAddress, message);
-  wait1sec.attach(2, waitFunction);
   if (T_packet_state == 0) {
 #ifdef DEBUG
     //Serial.println(F("State = 0 --> Command Executed w no errors!"));
     Serial.println(F("Confirmation Packet sent....."));
 #endif
-    return FunctionBlockingFlag = true, T_ISR_F = false;;
+    T_ISR_F = false;
   }
-  // else if (state == 5 || state == 4) {
-  //   // #ifdef DEBUG
-  //   // Serial.println("Controller is trying to send data!");
-  //   // Serial.println("Shifting to Receving mode");
-  //   // #endif
-  //   return FunctionBlockingFlag = true;
-  // }
+  FunctionBlockingFlag = true;
 }
 
-int recieveData() {
+void recieveData() {
   R_packet_state = sx1278.receivePacketTimeoutACK();
-  wait1sec.attach(1, waitFunction);
   if (R_packet_state == 0) {
 #ifdef DEBUG
     Serial.println(F("Package received!"));
@@ -184,7 +176,7 @@ int recieveData() {
     receivedMsg = String(my_packet); //Converts CharArray to String
     Process();
 
-    return FunctionBlockingFlag = false;
+    FunctionBlockingFlag = false;
   }
 }
 
@@ -325,16 +317,6 @@ void loraSetup() {
 #endif
   }
 
-  if (sx1278.setRetries(MAXretries) == 0) {
-#ifdef DEBUG
-    Serial.println("Setting retries: SUCCESS");
-#endif
-  } else {
-#ifdef DEBUG
-    Serial.println("Setting retires: ERROR");
-#endif
-  }
-
   // Print a success
 #ifdef DEBUG
   Serial.println(F("SX1278 configured finished"));
@@ -357,7 +339,5 @@ void ledOff() {
   digitalWrite(GreenLED, LOW);
 }
 
-void waitFunction() {
-  wait1sec.detach();
-}
+
 
