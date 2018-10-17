@@ -277,11 +277,10 @@ void InterruptAction() {
       Serial.print(count+=1);
       Serial.print("\t");
       #endif
+
       String("GL1").toCharArray(testData, 50);
       address = 3;
-      // delay(500);
       sendData(address, testData);
-      // delay(1000);
       // -----------------------------------------------
       tft.fillRect(rect1x, 117, recwidth, 20, YELLOW);
       tft.setCursor(14, 122);
@@ -301,13 +300,20 @@ void InterruptAction() {
         tft.print("Transmission:Success");
         // -----------------------------------------------
         button1State = false;
-        #ifdef TEST
-        // DB_ISR_F_1 = false;
-        #endif
+      } else {
+        // -----------------------------------------------
+        tft.fillRect(rect1x, 117, recwidth, 20, RED);
+        tft.setCursor(6, 122);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(1);
+        tft.print("Transmission:Failed");
+        // -----------------------------------------------
+        button1State = true;
+      }
         #ifndef TEST
         DB_ISR_F_1 = false;
         #endif
-      }
+
     } else if (!button1State) {
       #ifdef DEBUG
       Serial.println("\nButton 1 was pressed twice!");
@@ -317,11 +323,11 @@ void InterruptAction() {
       Serial.print(count+=1);
       Serial.print("\t");
       #endif
+
       String("RL1").toCharArray(testData, 50);
       address = 3;
-      // delay(1000);
       sendData(address, testData);
-      // delay(1000);
+
       // -----------------------------------------------
       tft.fillRect(rect1x, 117, recwidth, 20, YELLOW);
       tft.setCursor(14, 122);
@@ -339,16 +345,19 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Success");
         // -----------------------------------------------
-
         button1State = true;
-
-        #ifdef TEST
-        // DB_ISR_F_1 = false;
-        #endif
-        #ifndef TEST
-        DB_ISR_F_1 = false;
-        #endif
+      } else {
+        tft.fillRect(rect1x, 117, recwidth, 20, RED);
+        tft.setCursor(6, 122);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(1);
+        tft.print("Transmission:Failed");
+        button1State = false;
       }
+      
+      #ifndef TEST
+      DB_ISR_F_1 = false;
+      #endif
     }
   }
   //DB 2:
@@ -360,9 +369,11 @@ void InterruptAction() {
       #ifdef DEBUG
       Serial.println("\nButton 2 was pressed once!");
       #endif
+
       String("GL2").toCharArray(testData, 50);
       address = 4;
       sendData(address, testData);
+
       // -----------------------------------------------
       tft.fillRect(rect1x, 117, recwidth, 20, YELLOW);
       tft.setCursor(14, 122);
@@ -382,15 +393,27 @@ void InterruptAction() {
         tft.print("Transmission:Success");
         // -----------------------------------------------
         button2State = false;
-        DB_ISR_F_2 = false;
+      } else {
+        // -----------------------------------------------
+        tft.fillRect(rect1x, 117, recwidth, 20, RED);
+        tft.setCursor(6, 122);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(1);
+        tft.print("Transmission:Failed");
+        // -----------------------------------------------
+        button2State = true;
       }
+
+      DB_ISR_F_2 = false;
     } else if (!button2State) {
       #ifdef DEBUG
       Serial.println("\nButton 2 was pressed twice!");
       #endif
+
       String("RL2").toCharArray(testData, 50);
       address = 4;
       sendData(address, testData);
+
       // -----------------------------------------------
       tft.fillRect(rect1x, 117, recwidth, 20, YELLOW);
       tft.setCursor(14, 122);
@@ -410,8 +433,18 @@ void InterruptAction() {
         tft.print("Transmission:Success");
         // -----------------------------------------------
         button2State = true;
-        DB_ISR_F_2 = false;
+        
+      } else {
+        // -----------------------------------------------
+        tft.fillRect(rect1x, 117, recwidth, 20, RED);
+        tft.setCursor(6, 122);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(1);
+        tft.print("Transmission:Failed");
+        // -----------------------------------------------
+        button2State = false;
       }
+      DB_ISR_F_2 = false;
     }
   }
   //DB 3:
@@ -423,6 +456,7 @@ void InterruptAction() {
       #ifdef DEBUG
       Serial.println("\nButton 3 was pressed once!");
       #endif
+
       String("GL3").toCharArray(testData, 50);
       address = 6;
       sendData(address, testData);
@@ -446,15 +480,26 @@ void InterruptAction() {
         tft.print("Transmission:Success");
         // -----------------------------------------------
         button3State = false;
-        DB_ISR_F_3 = false;
+      } else {
+        // -----------------------------------------------
+        tft.fillRect(rect1x, 117, recwidth, 20, RED);
+        tft.setCursor(6, 122);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(1);
+        tft.print("Transmission:Failed");
+        // -----------------------------------------------
+        button3State = true;
       }
+      DB_ISR_F_3 = false;
     } else if (!button3State) {
       #ifdef DEBUG
       Serial.println("\nButton 3 was pressed twice!");
       #endif
+
       String("RL3").toCharArray(testData, 50);
       address = 6;
       sendData(address, testData);
+
       // -----------------------------------------------
       tft.fillRect(rect1x, 117, recwidth, 20, YELLOW);
       tft.setCursor(14, 122);
@@ -462,6 +507,7 @@ void InterruptAction() {
       tft.setTextSize(1);
       tft.print("Transmitting Data");
       // -----------------------------------------------
+
       if (T_packet_state == 0) {
         blockStateColor = false;
         Location3.attach(0.7, Blink_Location_Rect_3);
@@ -475,8 +521,19 @@ void InterruptAction() {
         // -----------------------------------------------
 
         button3State = true;
-        DB_ISR_F_3 = false;
+        
+      } else {
+        // -----------------------------------------------
+        tft.fillRect(rect1x, 117, recwidth, 20, RED);
+        tft.setCursor(6, 122);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(1);
+        tft.print("Transmission:Failed");
+        // -----------------------------------------------
+
+        button3State = false;
       }
+      DB_ISR_F_3 = false;
     }
   }
   }
