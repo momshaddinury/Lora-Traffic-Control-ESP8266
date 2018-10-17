@@ -12,14 +12,14 @@
            Abdullah Zawad Khan
 */
 // ---------------------------------------------------------------------
+
 //Including Library:
 #include <Arduino.h>
-#include <SX1278.h>
-
-// Including Library for 1.8 TFT DispLay
+// Including Library for 1.8 TFT DispLay:
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
-
+//Lora SX1278:
+#include <SX1278.h>
 //Library for Ticker
 #include <Ticker.h>
 
@@ -40,7 +40,7 @@
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
-// Variable For TFT Display
+// Variable For TFT Display Rectangle
 int rect1x = 4;
 int rect1y = 25;
 int rect2y = 47;
@@ -59,41 +59,50 @@ Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 uint8_t NodeAddress;          //Child Address
 int address;
 
+//Packets var:
 char my_packet [50];
 char testData[50];
 String receivedMsg;
-
 int T_packet_state;
 int R_packet_state;
 
-//Pin def:
+//Pin def of Switch:
 #define digitalButton_1 2
 #define digitalButton_2 4
 #define digitalButton_3 5
 #define analogButton A0
+
 //Analog button value storing variable:
 int AB_value;
-//Locations:
+
+//Locations on display:
 String Location;
 String Location_1 = "GEC";
 String Location_2 = "BAIZID";
 String Location_3 = "MURADPUR";
 String Location_4 = "PROBARTAK";
+
+//Block State Color:
 boolean blockStateColor;
-// boolean blockStateColor2;
+//boolean blockStateColor2;
+
+//Ticker:
 Ticker Location1, Location2, Location3, Location4, statusRectToggler;
 
 boolean locationBlock_1 = true;
 boolean locationBlock_2 = true;
 boolean locationBlock_3 = true;
 boolean locationBlock_4 = true;
-// Button State
+
+// Button State var:
 boolean button1State = true;
 boolean button2State = true;
 boolean button3State = true;
 boolean button4State = true;
+
 //Sync:
 boolean resetCondition = true;
+
 //Timer:
 long interval = 3000;
 volatile unsigned long DB_priv_time_1;
@@ -106,21 +115,26 @@ volatile boolean DB_ISR_F_1 = false;
 volatile boolean DB_ISR_F_2 = false;
 volatile boolean DB_ISR_F_3 = false;
 
-#define DEBUG
+//Transmission Time Var:
 unsigned long DB_1_Process_Start_Time;
 unsigned long DB_1_Process_End_Time;
 unsigned long DB_2_Process_Start_Time;
 unsigned long DB_2_Process_End_Time;
+unsigned long DB_3_Process_Start_Time;
+unsigned long DB_3_Process_End_Time;
+
+//Serial Print and Debug:
+#define DEBUG
 
 //TESTCASE:
-#define TEST
+// #define TEST
 int count = 0;
 boolean automation_toggle = true;
 
 void setup() {
-  // #ifdef DEBUG
+  #ifdef DEBUG
   Serial.begin(9600);
-  // #endif
+  #endif
   //Display Setup:
   displaySetup();
   // Lora Initialization
@@ -138,21 +152,31 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(digitalButton_1), ISR_DB_1, FALLING);
   attachInterrupt(digitalPinToInterrupt(digitalButton_2), ISR_DB_2, FALLING);
   attachInterrupt(digitalPinToInterrupt(digitalButton_3), ISR_DB_3, FALLING);
-}
+  }
 
 void loop() {
   //After the device is booted it automatically re-boots other device:
   sync();
-  // This function checks for data to receive
-  recieveData();
-  //This functions is for InterruptAction:
-  InterruptAction();
-  //Analog functions:
-  AnalogAction();
+
   //To make Switch from pin 2:
   digitalWrite(digitalButton_1, HIGH);
   digitalWrite(0, LOW);
-}
+
+  //Check Config:
+  // check_config();
+  
+  //This functions is for InterruptAction:
+  InterruptAction();
+
+  // This function checks for data to receive
+  recieveData();
+  
+  //Analog functions:
+  AnalogAction();
+
+  // This function checks for data to receive
+  recieveData();
+  }
 
 void sync() {
   if (resetCondition == true) {
@@ -181,12 +205,12 @@ void sync() {
       // ----------------------------------
     }
   }
-}
+  }
 
 void statusSecTiggerFunction() {
   tft.fillRect(rect1x, 117, recwidth, 40, YELLOW);
   statusRectToggler.detach();
-}
+  }
 
 //Interrupt Service Routine for Button 1,2,3:
 void ISR_DB_1() { //ISR handler for button 1
@@ -211,30 +235,31 @@ void ISR_DB_1() { //ISR handler for button 1
     #ifndef TEST
     DB_ISR_F_1 = true;
     DB_priv_time_1 = millis();
-    Serial.print("##");
+    Serial.print("\n##");
     Serial.print(count+=1);
     Serial.print("\t");
     #endif
   }
-}
+  }
 void ISR_DB_2() { //ISR handler for button 2
   if ((long(millis()) - DB_priv_time_2) >= interval) {
     DB_ISR_F_2 = true;
     DB_priv_time_2 = millis();
-    Serial.print("##");
+    Serial.print("\n##");
     Serial.print(count+=1);
     Serial.print("\t");
   }
-}
+  }
 void ISR_DB_3() { //ISR handler for button 3
   if ((long(millis()) - DB_priv_time_3) >= interval) {
     DB_ISR_F_3 = true;
     DB_priv_time_3 = millis();
-    Serial.print("##");
+    Serial.print("\n##");
     Serial.print(count+=1);
     Serial.print("\t");
   }
-}
+  }
+
 //States what happens when InterruptAction Function is called:
 void InterruptAction() {
   //DB 1:
@@ -244,7 +269,7 @@ void InterruptAction() {
 
     if (button1State) {
       #ifdef DEBUG
-      Serial.println("Button 1 was pressed once!");
+      Serial.println("\nButton 1 was pressed once!");
       #endif
 
       #ifdef TEST
@@ -254,7 +279,7 @@ void InterruptAction() {
       #endif
       String("GL1").toCharArray(testData, 50);
       address = 3;
-      delay(1000);
+      // delay(500);
       sendData(address, testData);
       // delay(1000);
       // -----------------------------------------------
@@ -285,7 +310,7 @@ void InterruptAction() {
       }
     } else if (!button1State) {
       #ifdef DEBUG
-      Serial.println("Button 1 was pressed twice!");
+      Serial.println("\nButton 1 was pressed twice!");
       #endif
       #ifdef TEST
       Serial.print("##");
@@ -294,7 +319,7 @@ void InterruptAction() {
       #endif
       String("RL1").toCharArray(testData, 50);
       address = 3;
-      delay(1000);
+      // delay(1000);
       sendData(address, testData);
       // delay(1000);
       // -----------------------------------------------
@@ -333,7 +358,7 @@ void InterruptAction() {
 
     if (button2State) {
       #ifdef DEBUG
-      Serial.println("Button 2 was pressed once!");
+      Serial.println("\nButton 2 was pressed once!");
       #endif
       String("GL2").toCharArray(testData, 50);
       address = 4;
@@ -361,7 +386,7 @@ void InterruptAction() {
       }
     } else if (!button2State) {
       #ifdef DEBUG
-      Serial.println("Button 2 was pressed twice!");
+      Serial.println("\nButton 2 was pressed twice!");
       #endif
       String("RL2").toCharArray(testData, 50);
       address = 4;
@@ -391,15 +416,17 @@ void InterruptAction() {
   }
   //DB 3:
   else if (DB_ISR_F_3) {
+    DB_3_Process_Start_Time = millis();
     Location = Location_3;
 
     if (button3State) {
       #ifdef DEBUG
-      Serial.println("Button 3 was pressed once!");
+      Serial.println("\nButton 3 was pressed once!");
       #endif
       String("GL3").toCharArray(testData, 50);
       address = 6;
       sendData(address, testData);
+
       // -----------------------------------------------
       tft.fillRect(rect1x, 117, recwidth, 20, YELLOW);
       tft.setCursor(14, 122);
@@ -407,7 +434,6 @@ void InterruptAction() {
       tft.setTextSize(1);
       tft.print("Transmitting Data");
       // -----------------------------------------------
-
       if (T_packet_state == 0) {
         blockStateColor = true;
         Location3.attach(0.7, Blink_Location_Rect_3);
@@ -419,14 +445,12 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Success");
         // -----------------------------------------------
-      }
-      if (T_packet_state == 0) {
         button3State = false;
         DB_ISR_F_3 = false;
       }
     } else if (!button3State) {
       #ifdef DEBUG
-      Serial.println("Button 3 was pressed twice!");
+      Serial.println("\nButton 3 was pressed twice!");
       #endif
       String("RL3").toCharArray(testData, 50);
       address = 6;
@@ -449,14 +473,13 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Success");
         // -----------------------------------------------
-      }
-      if (T_packet_state == 0) {
+
         button3State = true;
         DB_ISR_F_3 = false;
       }
     }
   }
-}
+  }
 //Analog button action:
 void AnalogAction() {
   AB_value = analogRead(analogButton);
@@ -493,8 +516,8 @@ void AnalogAction() {
       AB_priv_time = millis();
     }
   }
-}
-//Global send data function
+  }
+
 /*
   Function: Configures the module to transmit information and receive an ACK.
   Returns: Integer that determines if there has been any error [T_packet_state]
@@ -510,11 +533,13 @@ void AnalogAction() {
    state = 0  --> The command has been executed with no errors
 */
 
+//Global send data function
 void sendData(uint8_t NodeAddress, char message[]) {
   #ifdef DEBUG
   Serial.print("Node Address : ");
   Serial.println(address);
   #endif
+  delay(500);
   T_packet_state = sx1278.sendPacketTimeoutACKRetries(NodeAddress, message);
   if (T_packet_state == 0)
   {
@@ -523,6 +548,9 @@ void sendData(uint8_t NodeAddress, char message[]) {
     Serial.println(F("Packet sent..."));
     #endif
   }
+  else if(T_packet_state == 5 || T_packet_state == 4) {
+    sendData(address, testData);
+  }
   else {
     #ifdef DEBUG
     Serial.print(F("Error Code: "));
@@ -530,8 +558,8 @@ void sendData(uint8_t NodeAddress, char message[]) {
     Serial.println(F("Packet not sent...."));
     #endif
   }
-}
-//Global receive data funtion
+  }
+//Global receive data function
 void recieveData() {
   R_packet_state = sx1278.receivePacketTimeoutACK();
   if (R_packet_state == 0) {
@@ -549,7 +577,8 @@ void recieveData() {
     receivedMsg = String(my_packet);
     Setting_Block_State_Color();
   }
-}
+  }
+
 //This is for blinking the FIRST Location
 void Blink_Location_Rect_1() {
   tft.setCursor(40, 30);
@@ -583,109 +612,75 @@ void Blink_Location_Rect_1() {
       locationBlock_1 = true;
     }
   }
-}
+  }
 //This is for blinking the SECOND Location
 void Blink_Location_Rect_2() {
+  tft.setCursor(40, 55);
+  tft.setTextSize(1);
+
   //Green Block Blink
   if (blockStateColor) {
-
     if (locationBlock_2) {
-
       tft.fillRect(rect1x, rect2y, recwidth, recheight, GREEN);
-      tft.setCursor(40, 55);
       tft.setTextColor(BLACK);
-      tft.setTextSize(1);
       tft.print("BAIZID");
-
       locationBlock_2 = false;
-
     } else if (!locationBlock_2) {
       tft.fillRect(rect1x, rect2y, recwidth, recheight, BLACK);
-      tft.setCursor(40, 55);
       tft.setTextColor(WHITE);
-      tft.setTextSize(1);
       tft.print("BAIZID");
-
       locationBlock_2 = true;
-
     }
   }
   //Red Block Blink
   else if (!blockStateColor) {
-
     if (locationBlock_2) {
-
       tft.fillRect(rect1x, rect2y, recwidth, recheight, RED);
-      tft.setCursor(40, 55);
       tft.setTextColor(BLACK);
-      tft.setTextSize(1);
       tft.print("BAIZID");
-
       locationBlock_2 = false;
-
     } else if (!locationBlock_2) {
-
       tft.fillRect(rect1x, rect2y, recwidth, recheight, BLACK);
-      tft.setCursor(40, 55);
       tft.setTextColor(WHITE);
-      tft.setTextSize(1);
       tft.print("BAIZID");
-
       locationBlock_2 = true;
     }
   }
-}
+  }
 //This is for blinking the THIRD Location
 void Blink_Location_Rect_3() {
+  tft.setCursor(40, 75);
+  tft.setTextSize(1);
+
   //Green Block Blink
   if (blockStateColor) {
-
     if (locationBlock_3) {
-
       tft.fillRect(rect1x, rect3y, recwidth, recheight, GREEN);
-      tft.setCursor(40, 75);
       tft.setTextColor(BLACK);
-      tft.setTextSize(1);
       tft.print("MURADPUR");
-
       locationBlock_3 = false;
-
     } else if (!locationBlock_3) {
       tft.fillRect(rect1x, rect3y, recwidth, recheight, BLACK);
-      tft.setCursor(40, 75);
       tft.setTextColor(WHITE);
-      tft.setTextSize(1);
       tft.print("MURADPUR");
-
       locationBlock_3 = true;
-
     }
   }
   //Red Block Blink
   else if (!blockStateColor) {
-
     if (locationBlock_3) {
-
       tft.fillRect(rect1x, rect3y, recwidth, recheight, RED);
-      tft.setCursor(40, 75);
       tft.setTextColor(BLACK);
-      tft.setTextSize(1);
       tft.print("MURADPUR");
-
       locationBlock_3 = false;
-
     } else if (!locationBlock_3) {
-
       tft.fillRect(rect1x, rect3y, recwidth, recheight, BLACK);
-      tft.setCursor(40, 75);
       tft.setTextColor(WHITE);
-      tft.setTextSize(1);
       tft.print("MURADPUR");
-
       locationBlock_3 = true;
     }
   }
-}
+  }
 //This is for blinking the FOURTH Location
 void Blink_Location_Rect_4() {
   //Green Block Blink
@@ -736,7 +731,7 @@ void Blink_Location_Rect_4() {
       locationBlock_4 = true;
     }
   }
-}
+  }
 
 void Setting_Block_State_Color() {
   //Sets the block state for FIRST Location
@@ -856,6 +851,9 @@ void Setting_Block_State_Color() {
       statusRectToggler.attach(2, statusSecTiggerFunction);
       // -----------------------------------------------
     }
+    DB_3_Process_End_Time = millis();
+    Serial.print("3 - Required time: ");
+    printDouble(((DB_3_Process_End_Time- DB_3_Process_Start_Time)/1000.0),1000);
   }
   //Sets the block state for FOURTH location
   if (receivedMsg.equals("KL4")) {
@@ -875,7 +873,7 @@ void Setting_Block_State_Color() {
       tft.print("PROBARTAK");
     }
   }
-}
+  }
 
 void loraSetup() {
   #ifdef DEBUG
@@ -963,7 +961,7 @@ void loraSetup() {
   Serial.println(F("SX1278 configured finished"));
   Serial.println();
   #endif
-}
+  }
 
 void displaySetup() {
 
@@ -1031,7 +1029,7 @@ void displaySetup() {
   tft.setTextColor(BLACK);
   tft.setTextSize(1);
   tft.print("PROBARTAK");
-}
+  }
 
 void printDouble( double val, unsigned int precision){
   // prints val with number of decimal places determine by precision
@@ -1046,4 +1044,14 @@ void printDouble( double val, unsigned int precision){
    else
        frac = (int(val)- val ) * precision;
    Serial.println(frac,DEC) ;
-} 
+  } 
+
+void check_config() {
+  // sx1278.getBW();
+  if(sx1278.getSF() == 0) {
+    Serial.println("SUCCESS");
+    }else {
+      Serial.println("Error");
+    }
+  // sx1278.getCR();
+  }

@@ -3,9 +3,9 @@
 #include <SX1278.h>
 
 //Child Parameter:
-#define Child_1
+// #define Child_1
 // #define Child_2
-//#define Child_3
+#define Child_3
 //#define Child_4
 
 //Lora SX1278:
@@ -84,8 +84,8 @@ void loop() {
   //   recieveData();
   //   // delay(1000);
   // }
-
-  if (!FunctionBlockingFlag) {
+  // delay(1000);
+  if (!FunctionBlockingFlag /*==False*/) {
     unsigned long current_millis = millis();
     if ((unsigned long ) (current_millis - last_interval) >= interval) {
       childTask();
@@ -110,7 +110,7 @@ void childTask() {
   #endif
 
   #ifdef Child_3
-  if ( (receivedMsg.equals("GL3") || receivedMsg.equals("RL3")) && T_ISR_F && !FunctionBlockingFlag) {
+  if ( (receivedMsg.equals("GL3") || receivedMsg.equals("RL3")) /*&& T_ISR_F*/ && !FunctionBlockingFlag) {
     String("KL3").toCharArray(testData, 50);
     sendData(testData);
   }
@@ -151,7 +151,7 @@ void Trigger_ISR() {
 */
 
 void sendData(char message[]) {
-  // delay(1000);
+  delay(400);
   T_packet_state = sx1278.sendPacketTimeoutACKRetries(ControllerAddress, message);
   Serial.print("Send Packet State:");
   Serial.println(T_packet_state);
@@ -161,13 +161,14 @@ void sendData(char message[]) {
     Serial.println(F("Confirmation Packet sent....."));
     #endif
     T_ISR_F = false;
+    FunctionBlockingFlag = true;
   }
   else if (T_packet_state == 5 || T_packet_state == 4) {
     Serial.print("Conflict --> TRUE");
     Serial.println("Enable: Rx");
-    delay(1000);
+    // delay(1000);
+    FunctionBlockingFlag = true;
   }
-  FunctionBlockingFlag = true;
 }
 
 void recieveData() {
@@ -194,7 +195,7 @@ void recieveData() {
 }
 
 
-void Process() {
+void Process() {    //Controls LED
   //For Child 1
   #ifdef Child_1
   if (receivedMsg.equals("GL1")) {
@@ -249,7 +250,7 @@ void Process() {
   }
 }
 
-void loraSetup() {
+void loraSetup() {  //Sets up LORA Module
   #ifdef DEBUG
   Serial.println("");
   #endif
