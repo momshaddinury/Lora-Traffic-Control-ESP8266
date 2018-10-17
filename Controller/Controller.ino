@@ -30,7 +30,7 @@
 #define TFT_SCLK                          14
 #define TFT_MOSI                          13
 
-// Color Code For Tft Display
+// Color Code For TFT Display
 #define BLACK   0x0000
 #define BLUE    0x001F
 #define RED     0xF800
@@ -124,17 +124,19 @@ unsigned long DB_3_Process_Start_Time;
 unsigned long DB_3_Process_End_Time;
 
 //Serial Print and Debug:
-#define DEBUG
+// #define DEBUG
 
 //TESTCASE:
-// #define TEST
+#define TEST
 int count = 0;
 boolean automation_toggle = true;
 
+
+//MAIN SETUP FUNCTION
 void setup() {
-  #ifdef DEBUG
+  // #ifdef DEBUG
   Serial.begin(9600);
-  #endif
+  // #endif
   //Display Setup:
   displaySetup();
   // Lora Initialization
@@ -153,31 +155,32 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(digitalButton_2), ISR_DB_2, FALLING);
   attachInterrupt(digitalPinToInterrupt(digitalButton_3), ISR_DB_3, FALLING);
   }
-
+//MAIN LOOP
 void loop() {
   //After the device is booted it automatically re-boots other device:
   sync();
 
-  //To make Switch from pin 2:
+  //To use pin 2 as switch:
   digitalWrite(digitalButton_1, HIGH);
   digitalWrite(0, LOW);
 
   //Check Config:
-  // check_config();
+  //check_config();
   
   //This functions is for InterruptAction:
   InterruptAction();
 
-  // This function checks for data to receive
+  //This function checks for data to receive
   recieveData();
   
   //Analog functions:
   AnalogAction();
 
-  // This function checks for data to receive
+  //This function checks for data to receive
   recieveData();
   }
 
+//RESETs connected Nodes
 void sync() {
   if (resetCondition == true) {
 
@@ -212,8 +215,8 @@ void statusSecTiggerFunction() {
   statusRectToggler.detach();
   }
 
-//Interrupt Service Routine for Button 1,2,3:
-void ISR_DB_1() { //ISR handler for button 1
+//ISRs for DIGITAL Button 1,2,3:
+void ISR_DB_1() { //ISR handler 1
   if ((long(millis()) - DB_priv_time_1) >= interval) {
     
     #ifdef TEST
@@ -241,7 +244,7 @@ void ISR_DB_1() { //ISR handler for button 1
     #endif
   }
   }
-void ISR_DB_2() { //ISR handler for button 2
+void ISR_DB_2() { //ISR handler 2
   if ((long(millis()) - DB_priv_time_2) >= interval) {
     DB_ISR_F_2 = true;
     DB_priv_time_2 = millis();
@@ -250,7 +253,7 @@ void ISR_DB_2() { //ISR handler for button 2
     Serial.print("\t");
   }
   }
-void ISR_DB_3() { //ISR handler for button 3
+void ISR_DB_3() { //ISR handler 3
   if ((long(millis()) - DB_priv_time_3) >= interval) {
     DB_ISR_F_3 = true;
     DB_priv_time_3 = millis();
@@ -281,6 +284,7 @@ void InterruptAction() {
       String("GL1").toCharArray(testData, 50);
       address = 3;
       sendData(address, testData);
+
       // -----------------------------------------------
       tft.fillRect(rect1x, 117, recwidth, 20, YELLOW);
       tft.setCursor(14, 122);
@@ -292,6 +296,7 @@ void InterruptAction() {
       if (T_packet_state == 0) {
         blockStateColor = true;
         Location1.attach(1, Blink_Location_Rect_1);
+
         // -----------------------------------------------
         tft.fillRect(rect1x, 117, recwidth, 20, GREEN);
         tft.setCursor(6, 122);
@@ -299,6 +304,7 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Success");
         // -----------------------------------------------
+
         button1State = false;
       } else {
         // -----------------------------------------------
@@ -308,6 +314,7 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Failed");
         // -----------------------------------------------
+
         button1State = true;
       }
         #ifndef TEST
@@ -318,6 +325,7 @@ void InterruptAction() {
       #ifdef DEBUG
       Serial.println("\nButton 1 was pressed twice!");
       #endif
+
       #ifdef TEST
       Serial.print("##");
       Serial.print(count+=1);
@@ -335,9 +343,11 @@ void InterruptAction() {
       tft.setTextSize(1);
       tft.print("Transmitting Data");
       // -----------------------------------------------
+
       if (T_packet_state == 0) {
         blockStateColor = false;
         Location1.attach(1, Blink_Location_Rect_1);
+
         // -----------------------------------------------
         tft.fillRect(rect1x, 117, recwidth, 20, GREEN);
         tft.setCursor(6, 122);
@@ -345,13 +355,18 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Success");
         // -----------------------------------------------
+
         button1State = true;
       } else {
+
+        // -----------------------------------------------
         tft.fillRect(rect1x, 117, recwidth, 20, RED);
         tft.setCursor(6, 122);
         tft.setTextColor(WHITE);
         tft.setTextSize(1);
         tft.print("Transmission:Failed");
+        // -----------------------------------------------
+
         button1State = false;
       }
       
@@ -381,6 +396,7 @@ void InterruptAction() {
       tft.setTextSize(1);
       tft.print("Transmitting Data");
       // -----------------------------------------------
+
       if (T_packet_state == 0) {
         blockStateColor = true;
         Location2.attach(0.9, Blink_Location_Rect_2);
@@ -392,6 +408,7 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Success");
         // -----------------------------------------------
+
         button2State = false;
       } else {
         // -----------------------------------------------
@@ -401,6 +418,7 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Failed");
         // -----------------------------------------------
+
         button2State = true;
       }
 
@@ -421,6 +439,7 @@ void InterruptAction() {
       tft.setTextSize(1);
       tft.print("Transmitting Data");
       // -----------------------------------------------
+
       if (T_packet_state == 0) {
         blockStateColor = false;
         Location2.attach(0.9, Blink_Location_Rect_2);
@@ -432,6 +451,7 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Success");
         // -----------------------------------------------
+
         button2State = true;
         
       } else {
@@ -442,6 +462,7 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Failed");
         // -----------------------------------------------
+
         button2State = false;
       }
       DB_ISR_F_2 = false;
@@ -468,6 +489,7 @@ void InterruptAction() {
       tft.setTextSize(1);
       tft.print("Transmitting Data");
       // -----------------------------------------------
+
       if (T_packet_state == 0) {
         blockStateColor = true;
         Location3.attach(0.7, Blink_Location_Rect_3);
@@ -479,6 +501,7 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Success");
         // -----------------------------------------------
+
         button3State = false;
       } else {
         // -----------------------------------------------
@@ -488,6 +511,7 @@ void InterruptAction() {
         tft.setTextSize(1);
         tft.print("Transmission:Failed");
         // -----------------------------------------------
+
         button3State = true;
       }
       DB_ISR_F_3 = false;
@@ -548,6 +572,7 @@ void AnalogAction() {
         #ifdef DEBUG
         Serial.println("Button 4 was pressed once!");
         #endif
+
         String("GL4").toCharArray(testData, 50);
         address = 7;
         sendData(address, testData);
@@ -561,9 +586,11 @@ void AnalogAction() {
         #ifdef DEBUG
         Serial.println("Button 4 was pressed twice!");
         #endif
+
         String("RL4").toCharArray(testData, 50);
         address = 7;
         sendData(address, testData);
+
         if (T_packet_state == 0) {
           blockStateColor = false;
           Location4.attach(0.8, Blink_Location_Rect_4);
@@ -636,160 +663,163 @@ void recieveData() {
   }
   }
 
-//This is for blinking the FIRST Location
-void Blink_Location_Rect_1() {
-  tft.setCursor(40, 30);
-  tft.setTextSize(1);
 
-  //Green Block Blink:
-  if (blockStateColor) {
-    if (locationBlock_1) {
-      tft.fillRect(rect1x, rect1y, recwidth, recheight, GREEN);
-      tft.setTextColor(BLACK);
-      tft.print("GEC");
-      locationBlock_1 = false;
-    } else if (!locationBlock_1) {
-      tft.fillRect(rect1x, rect1y, recwidth, recheight, BLACK);
-      tft.setTextColor(WHITE);
-      tft.print("GEC");
-      locationBlock_1 = true;
+//BLINKING LOCATION BLOCKS
+  //Blinking the FIRST Location
+  void Blink_Location_Rect_1() {
+    tft.setCursor(40, 30);
+    tft.setTextSize(1);
+
+    //Green Block Blink:
+    if (blockStateColor) {
+      if (locationBlock_1) {
+        tft.fillRect(rect1x, rect1y, recwidth, recheight, GREEN);
+        tft.setTextColor(BLACK);
+        tft.print("GEC");
+        locationBlock_1 = false;
+      } else if (!locationBlock_1) {
+        tft.fillRect(rect1x, rect1y, recwidth, recheight, BLACK);
+        tft.setTextColor(WHITE);
+        tft.print("GEC");
+        locationBlock_1 = true;
+      }
     }
-  }
-  //Red Block Blink:
-  else if (!blockStateColor) {
-    if (locationBlock_1) {
-      tft.fillRect(rect1x, rect1y, recwidth, recheight, RED);
-      tft.setTextColor(BLACK);
-      tft.print("GEC");
-      locationBlock_1 = false;
-    } else if (!locationBlock_1) {
-      tft.fillRect(rect1x, rect1y, recwidth, recheight, BLACK);
-      tft.setTextColor(WHITE);
-      tft.print("GEC");
-      locationBlock_1 = true;
+    //Red Block Blink:
+    else if (!blockStateColor) {
+      if (locationBlock_1) {
+        tft.fillRect(rect1x, rect1y, recwidth, recheight, RED);
+        tft.setTextColor(BLACK);
+        tft.print("GEC");
+        locationBlock_1 = false;
+      } else if (!locationBlock_1) {
+        tft.fillRect(rect1x, rect1y, recwidth, recheight, BLACK);
+        tft.setTextColor(WHITE);
+        tft.print("GEC");
+        locationBlock_1 = true;
+      }
     }
-  }
-  }
-//This is for blinking the SECOND Location
-void Blink_Location_Rect_2() {
-  tft.setCursor(40, 55);
-  tft.setTextSize(1);
-
-  //Green Block Blink
-  if (blockStateColor) {
-    if (locationBlock_2) {
-      tft.fillRect(rect1x, rect2y, recwidth, recheight, GREEN);
-      tft.setTextColor(BLACK);
-      tft.print("BAIZID");
-      locationBlock_2 = false;
-    } else if (!locationBlock_2) {
-      tft.fillRect(rect1x, rect2y, recwidth, recheight, BLACK);
-      tft.setTextColor(WHITE);
-      tft.print("BAIZID");
-      locationBlock_2 = true;
     }
-  }
-  //Red Block Blink
-  else if (!blockStateColor) {
-    if (locationBlock_2) {
-      tft.fillRect(rect1x, rect2y, recwidth, recheight, RED);
-      tft.setTextColor(BLACK);
-      tft.print("BAIZID");
-      locationBlock_2 = false;
-    } else if (!locationBlock_2) {
-      tft.fillRect(rect1x, rect2y, recwidth, recheight, BLACK);
-      tft.setTextColor(WHITE);
-      tft.print("BAIZID");
-      locationBlock_2 = true;
+  //Blinking the SECOND Location
+  void Blink_Location_Rect_2() {
+    tft.setCursor(40, 55);
+    tft.setTextSize(1);
+
+    //Green Block Blink
+    if (blockStateColor) {
+      if (locationBlock_2) {
+        tft.fillRect(rect1x, rect2y, recwidth, recheight, GREEN);
+        tft.setTextColor(BLACK);
+        tft.print("BAIZID");
+        locationBlock_2 = false;
+      } else if (!locationBlock_2) {
+        tft.fillRect(rect1x, rect2y, recwidth, recheight, BLACK);
+        tft.setTextColor(WHITE);
+        tft.print("BAIZID");
+        locationBlock_2 = true;
+      }
     }
-  }
-  }
-//This is for blinking the THIRD Location
-void Blink_Location_Rect_3() {
-  tft.setCursor(40, 75);
-  tft.setTextSize(1);
-
-  //Green Block Blink
-  if (blockStateColor) {
-    if (locationBlock_3) {
-      tft.fillRect(rect1x, rect3y, recwidth, recheight, GREEN);
-      tft.setTextColor(BLACK);
-      tft.print("MURADPUR");
-      locationBlock_3 = false;
-    } else if (!locationBlock_3) {
-      tft.fillRect(rect1x, rect3y, recwidth, recheight, BLACK);
-      tft.setTextColor(WHITE);
-      tft.print("MURADPUR");
-      locationBlock_3 = true;
+    //Red Block Blink
+    else if (!blockStateColor) {
+      if (locationBlock_2) {
+        tft.fillRect(rect1x, rect2y, recwidth, recheight, RED);
+        tft.setTextColor(BLACK);
+        tft.print("BAIZID");
+        locationBlock_2 = false;
+      } else if (!locationBlock_2) {
+        tft.fillRect(rect1x, rect2y, recwidth, recheight, BLACK);
+        tft.setTextColor(WHITE);
+        tft.print("BAIZID");
+        locationBlock_2 = true;
+      }
     }
-  }
-  //Red Block Blink
-  else if (!blockStateColor) {
-    if (locationBlock_3) {
-      tft.fillRect(rect1x, rect3y, recwidth, recheight, RED);
-      tft.setTextColor(BLACK);
-      tft.print("MURADPUR");
-      locationBlock_3 = false;
-    } else if (!locationBlock_3) {
-      tft.fillRect(rect1x, rect3y, recwidth, recheight, BLACK);
-      tft.setTextColor(WHITE);
-      tft.print("MURADPUR");
-      locationBlock_3 = true;
     }
-  }
-  }
-//This is for blinking the FOURTH Location
-void Blink_Location_Rect_4() {
-  //Green Block Blink
-  if (blockStateColor) {
+  //Blinking the THIRD Location
+  void Blink_Location_Rect_3() {
+    tft.setCursor(40, 75);
+    tft.setTextSize(1);
 
-    if (locationBlock_4) {
-
-      tft.fillRect(rect1x, rect4y, recwidth, recheight, GREEN);
-      tft.setCursor(40, 97);
-      tft.setTextColor(BLACK);
-      tft.setTextSize(1);
-      tft.print("PROBARTAK");
-
-      locationBlock_4 = false;
-
-    } else if (!locationBlock_4) {
-      tft.fillRect(rect1x, rect4y, recwidth, recheight, BLACK);
-      tft.setCursor(40, 97);
-      tft.setTextColor(WHITE);
-      tft.setTextSize(1);
-      tft.print("PROBARTAK");
-
-      locationBlock_4 = true;
-
+    //Green Block Blink
+    if (blockStateColor) {
+      if (locationBlock_3) {
+        tft.fillRect(rect1x, rect3y, recwidth, recheight, GREEN);
+        tft.setTextColor(BLACK);
+        tft.print("MURADPUR");
+        locationBlock_3 = false;
+      } else if (!locationBlock_3) {
+        tft.fillRect(rect1x, rect3y, recwidth, recheight, BLACK);
+        tft.setTextColor(WHITE);
+        tft.print("MURADPUR");
+        locationBlock_3 = true;
+      }
     }
-  }
-  //Red Block Blink
-  else if (!blockStateColor) {
-
-    if (locationBlock_4) {
-
-      tft.fillRect(rect1x, rect4y, recwidth, recheight, RED);
-      tft.setCursor(40, 97);
-      tft.setTextColor(BLACK);
-      tft.setTextSize(1);
-      tft.print("PROBARTAK");
-
-      locationBlock_4 = false;
-
-    } else if (!locationBlock_4) {
-
-      tft.fillRect(rect1x, rect4y, recwidth, recheight, BLACK);
-      tft.setCursor(40, 97);
-      tft.setTextColor(WHITE);
-      tft.setTextSize(1);
-      tft.print("PROBARTAK");
-
-      locationBlock_4 = true;
+    //Red Block Blink
+    else if (!blockStateColor) {
+      if (locationBlock_3) {
+        tft.fillRect(rect1x, rect3y, recwidth, recheight, RED);
+        tft.setTextColor(BLACK);
+        tft.print("MURADPUR");
+        locationBlock_3 = false;
+      } else if (!locationBlock_3) {
+        tft.fillRect(rect1x, rect3y, recwidth, recheight, BLACK);
+        tft.setTextColor(WHITE);
+        tft.print("MURADPUR");
+        locationBlock_3 = true;
+      }
     }
-  }
-  }
+    }
+  //Blinking the FOURTH Location
+  void Blink_Location_Rect_4() {
+    //Green Block Blink
+    if (blockStateColor) {
 
+      if (locationBlock_4) {
+
+        tft.fillRect(rect1x, rect4y, recwidth, recheight, GREEN);
+        tft.setCursor(40, 97);
+        tft.setTextColor(BLACK);
+        tft.setTextSize(1);
+        tft.print("PROBARTAK");
+
+        locationBlock_4 = false;
+
+      } else if (!locationBlock_4) {
+        tft.fillRect(rect1x, rect4y, recwidth, recheight, BLACK);
+        tft.setCursor(40, 97);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(1);
+        tft.print("PROBARTAK");
+
+        locationBlock_4 = true;
+
+      }
+    }
+    //Red Block Blink
+    else if (!blockStateColor) {
+
+      if (locationBlock_4) {
+
+        tft.fillRect(rect1x, rect4y, recwidth, recheight, RED);
+        tft.setCursor(40, 97);
+        tft.setTextColor(BLACK);
+        tft.setTextSize(1);
+        tft.print("PROBARTAK");
+
+        locationBlock_4 = false;
+
+      } else if (!locationBlock_4) {
+
+        tft.fillRect(rect1x, rect4y, recwidth, recheight, BLACK);
+        tft.setCursor(40, 97);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(1);
+        tft.print("PROBARTAK");
+
+        locationBlock_4 = true;
+      }
+    }
+    }
+
+//FINAL LOCATION BLOCK STATE
 void Setting_Block_State_Color() {
   //Sets the block state for FIRST Location
   if (receivedMsg.equals("KL1")) {
@@ -932,6 +962,7 @@ void Setting_Block_State_Color() {
   }
   }
 
+//Sets Important Lora Modes and returns 'true' if it was successful or 'false' if it wasn't
 void loraSetup() {
   #ifdef DEBUG
   Serial.println("");
@@ -1019,7 +1050,7 @@ void loraSetup() {
   Serial.println();
   #endif
   }
-
+//Creates the UI layout
 void displaySetup() {
 
   // Diaplay Initialization and Creating BLock
@@ -1088,13 +1119,15 @@ void displaySetup() {
   tft.print("PROBARTAK");
   }
 
+
+//To print decimal numbers
 void printDouble( double val, unsigned int precision){
   // prints val with number of decimal places determine by precision
-  // NOTE: precision is 1 followed by the number of zeros for the desired number of decimial places
+  // NOTE: precision is 1 followed by the number of zeros for the desired number of decimal places
   // example: printDouble( 3.1415, 100); // prints 3.14 (two decimal places)
 
-   Serial.print (int(val));  //prints the int part
-   Serial.print("."); // print the decimal point
+   Serial.print (int(val));   //prints the int part
+   Serial.print(".");         // print the decimal point
    unsigned int frac;
    if(val >= 0)
        frac = (val - int(val)) * precision;
@@ -1102,13 +1135,22 @@ void printDouble( double val, unsigned int precision){
        frac = (int(val)- val ) * precision;
    Serial.println(frac,DEC) ;
   } 
-
+//Checks SF,BW,CR
 void check_config() {
-  // sx1278.getBW();
-  if(sx1278.getSF() == 0) {
-    Serial.println("SUCCESS");
-    }else {
-      Serial.println("Error");
-    }
-  // sx1278.getCR();
+
+  if (sx1278.getBW() == 0)
+      Serial.println("BW-Success");
+  else
+      Serial.println("BW-Error");
+
+  if(sx1278.getSF() == 0)
+      Serial.println("SF-Success");
+  else
+      Serial.println("SF-Error");
+
+  if (sx1278.getCR() == 0)
+      Serial.println("CR-Success");
+  else
+      Serial.println("CR-Error");
+
   }
